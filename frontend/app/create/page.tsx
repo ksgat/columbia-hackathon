@@ -6,50 +6,80 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { PhoneInput } from "@/components/phone-input"
-import { createMarket, createUser, getUserByPhone } from "@/lib/betting"
-import { ArrowLeft } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { ArrowLeft, Coins } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
+import * as api from "@/lib/api"
 
-export default function CreateMarket() {
+export default function CreateRoom() {
   const router = useRouter()
-  const [groupName, setGroupName] = useState("")
-  const [phones, setPhones] = useState<string[]>([])
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+  const [currencyMode, setCurrencyMode] = useState<'virtual' | 'cash' | 'both'>('virtual')
+  const [minBet, setMinBet] = useState('10')
+  const [maxBet, setMaxBet] = useState('1000')
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  // Check if user is authenticated
   useEffect(() => {
-    const userId = localStorage.getItem('currentUserId')
-    if (!userId) {
-      // Create a default user for demo purposes
-      const demoUser = createUser('+15551234567', 'You')
-      localStorage.setItem('currentUserId', demoUser.id)
-      setCurrentUserId(demoUser.id)
-    } else {
-      setCurrentUserId(userId)
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
     }
-  }, [])
+  }, [authLoading, isAuthenticated, router])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!groupName.trim() || !currentUserId) {
+    setError('')
+
+    if (!name.trim()) {
+      setError('Room name is required')
+      return
+    }
+
+    const minBetNum = parseInt(minBet)
+    const maxBetNum = parseInt(maxBet)
+
+    if (isNaN(minBetNum) || isNaN(maxBetNum)) {
+      setError('Bet limits must be valid numbers')
+      return
+    }
+
+    if (minBetNum < 1) {
+      setError('Minimum bet must be at least 1')
+      return
+    }
+
+    if (maxBetNum < minBetNum) {
+      setError('Maximum bet must be greater than minimum bet')
       return
     }
 
     setIsLoading(true)
 
     try {
-      // Create the market
-      const market = createMarket(currentUserId, groupName, phones)
-      
-      // Redirect to the market page
-      router.push(`/market/${market.id}`)
-    } catch (error) {
-      console.error('Error creating market:', error)
+      const room = await api.createRoom({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        currency_mode: currencyMode,
+        min_bet: minBetNum,
+        max_bet: maxBetNum,
+      })
+
+      router.push(`/room/${room.id}`)
+    } catch (err: any) {
+      setError(err.message || 'Failed to create room')
       setIsLoading(false)
     }
+  }
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    )
   }
 
   return (
@@ -62,46 +92,101 @@ export default function CreateMarket() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Create a Market</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Coins className="h-6 w-6" />
+              Create a Room
+            </CardTitle>
             <CardDescription>
-              Set up a prediction market with your friends
+              Set up a prediction market room for your group
             </CardDescription>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="groupName">Group Name</Label>
+                <Label htmlFor="name">Room Name</Label>
                 <Input
-                  id="groupName"
+                  id="name"
                   type="text"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="#friend group 1"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Friend Group Predictions"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Add Friends (Optional)</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Add phone numbers of friends to invite them later
-                </p>
-                <PhoneInput
-                  phones={phones}
-                  onChange={setPhones}
-                  placeholder="Phone number (e.g., +1234567890)"
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="What will this room be used for?"
+                  rows={3}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currencyMode">Currency Mode</Label>
+                <select
+                  id="currencyMode"
+                  value={currencyMode}
+                  onChange={(e) => setCurrencyMode(e.target.value as 'virtual' | 'cash' | 'both')}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="virtual">Virtual (Fun money)</option>
+                  <option value="cash">Cash (Real stakes)</option>
+                  <option value="both">Both</option>
+                </select>
+                <p className="text-xs text-muted-foreground">
+                  Virtual mode uses play money, cash mode uses real stakes
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="minBet">Minimum Bet</Label>
+                  <Input
+                    id="minBet"
+                    type="number"
+                    value={minBet}
+                    onChange={(e) => setMinBet(e.target.value)}
+                    min="1"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="maxBet">Maximum Bet</Label>
+                  <Input
+                    id="maxBet"
+                    type="number"
+                    value={maxBet}
+                    onChange={(e) => setMaxBet(e.target.value)}
+                    min="1"
+                    required
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <div className="text-sm text-red-600 bg-red-50 dark:bg-red-950 dark:text-red-400 p-3 rounded-md">
+                  {error}
+                </div>
+              )}
 
               <Button
                 type="submit"
                 size="lg"
                 className="w-full"
-                disabled={!groupName.trim() || isLoading}
+                disabled={!name.trim() || isLoading}
               >
-                {isLoading ? "Creating..." : "Create Market"}
+                {isLoading ? "Creating..." : "Create Room"}
               </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                A unique join code will be generated for your room
+              </p>
             </form>
           </CardContent>
         </Card>

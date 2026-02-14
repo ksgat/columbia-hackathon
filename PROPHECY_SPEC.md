@@ -1672,8 +1672,9 @@ SUPABASE_SERVICE_KEY=eyJhbG...   # Server-side only
 GOOGLE_CLIENT_ID=xxxxx.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=xxxxx
 
-# Anthropic (Claude API for Prophet)
-ANTHROPIC_API_KEY=sk-ant-xxxxx
+# OpenRouter (for Prophet AI - supports Claude and other models)
+OPENROUTER_API_KEY=sk-or-v1-xxxxx
+OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
 
 # Privy (Wallet)
 PRIVY_APP_ID=xxxxx

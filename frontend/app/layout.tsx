@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Google_Sans } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/lib/auth-context";
 
 const googleSans = Google_Sans({
   subsets: ["latin"],
@@ -10,8 +11,8 @@ const googleSans = Google_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Bet on Your Friends",
-  description: "Create prediction markets with your friends",
+  title: "Prophecy - Social Prediction Markets",
+  description: "Create prediction markets with friends. Powered by Prophet AI.",
 };
 
 export default function RootLayout({
@@ -21,8 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={googleSans.variable}>
-      <body className="antialiased min-h-screen">
-        {children}
+      <body className="antialiased min-h-screen" suppressHydrationWarning>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

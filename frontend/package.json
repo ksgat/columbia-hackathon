@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "validate": "node scripts/validate-simple.js",
+    "predev": "npm run validate"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # OpenRouter API (for Claude and other LLMs)
     openrouter_api_key: str = ""
-    openrouter_model: str = "anthropic/claude-3.5-sonnet"  # Default model
+    openrouter_model: str = "anthropic/claude-opus-4.6"  # Default model
 
     # Redis (optional for now)
     redis_url: str = "redis://localhost:6379"

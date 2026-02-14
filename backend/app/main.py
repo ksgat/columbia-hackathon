@@ -5,8 +5,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-# Will import routers as we build them
-# from app.routers import auth, users, rooms, markets, trades, votes, whispers, narrative
+# Import routers
+from app.routers import auth, users, rooms, markets, votes, prophet
+# from app.routers import whispers, narrative
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -55,12 +56,13 @@ async def health_check():
         "ai": "ready"
     }
 
-# Router registration (will add as we build them)
-# app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-# app.include_router(users.router, prefix="/api/users", tags=["users"])
-# app.include_router(rooms.router, prefix="/api/rooms", tags=["rooms"])
-# app.include_router(markets.router, prefix="/api/markets", tags=["markets"])
-# app.include_router(trades.router, prefix="/api/trades", tags=["trades"])
+# Router registration
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
+app.include_router(rooms.router, prefix="/api/rooms", tags=["rooms"])
+app.include_router(markets.router, prefix="/api/markets", tags=["markets"])
+app.include_router(votes.router, prefix="/api/markets", tags=["voting"])
+app.include_router(prophet.router, prefix="/api/prophet", tags=["prophet"])
 
 if __name__ == "__main__":
     import uvicorn
