@@ -1,0 +1,12 @@
+great, for demonstration purposes, when a user creates a prediction market and creates some predictions people could bet on, please also add five other npc
+players that simulate the actions of real players. this is for demonstration purposes for the hackathon. 
+
+secondly, please add some aesthetic color schemes. here is the color scheme: Soft Mint Green #D1E8E2
+Dark Cyan #19747E
+Light Blue #A9D6E5
+Platinum #E2E2E2
+
+additionally, on each prediction, there should be a historical chart of the value of the prediciotn (yes/no) over time. this hsould also apply ot 
+chained or derivative markets (options). 
+
+then, when a user places a bet, the value of the bet should be subtracted from their total balance. 
