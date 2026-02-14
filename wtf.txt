@@ -1,0 +1,8 @@
+develop 3 npc characters that will simulate real players in the group. name them john, gabe, and x. 
+
+also, incorporate different types of trades. these markets should act exacly like the stock market. take inspiration from robinhood ui/features. stock 
+market features should be implemented. 
+
+fix the broken leaderboard tab in markets. 
+
+allow users to join a certain market/group through a sharable link/card. 
