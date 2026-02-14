@@ -21,6 +21,8 @@ export default function RoomPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'markets' | 'feed' | 'leaderboard'>('markets')
   const [showCreateMarket, setShowCreateMarket] = useState(false)
+  const [showInvite, setShowInvite] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !authenticated) {
@@ -68,6 +70,19 @@ export default function RoomPage() {
     }
   }
 
+  const copyInviteLink = () => {
+    const inviteUrl = `${window.location.origin}/join?code=${room.join_code}`
+    navigator.clipboard.writeText(inviteUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const copyJoinCode = () => {
+    navigator.clipboard.writeText(room.join_code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   if (isLoading || loading) {
     return (
       <Layout>
@@ -100,15 +115,66 @@ export default function RoomPage() {
           <button onClick={() => router.push('/home')} className="text-primary hover:underline mb-4">
             ← Back to Home
           </button>
-          <h1 className="text-4xl font-bold mb-2">{room.name || 'Unnamed Room'}</h1>
-          <p className="text-muted-foreground text-lg mb-4">{room.description || 'No description'}</p>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>{room.currency_mode === 'cash' ? 'Real Money' : 'Virtual'}</span>
-            <span>{room.member_count || 0} members</span>
-            {room.min_bet !== undefined && room.max_bet !== undefined && (
-              <span>Min: {room.min_bet} | Max: {room.max_bet}</span>
-            )}
+
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold mb-2">{room.name || 'Unnamed Room'}</h1>
+              <p className="text-muted-foreground text-lg mb-4">{room.description || 'No description'}</p>
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <span>{room.is_public ? 'Public Room' : 'Private Room'}</span>
+                <span>{room.member_count || 0} members</span>
+              </div>
+            </div>
+
+            <Button onClick={() => setShowInvite(!showInvite)} variant="outline">
+              {showInvite ? 'Hide Invite' : 'Share Room'}
+            </Button>
           </div>
+
+          {/* Invite Section */}
+          {showInvite && (
+            <div className="bg-card border border-border rounded-lg p-4 mb-4">
+              <h3 className="font-bold mb-3">Invite People to This Room</h3>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Join Code</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={room.join_code}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-border rounded-lg bg-muted font-mono text-lg tracking-wider"
+                    />
+                    <Button onClick={copyJoinCode}>
+                      {copied ? 'Copied!' : 'Copy Code'}
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Invite Link</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={`${typeof window !== 'undefined' ? window.location.origin : ''}/join?code=${room.join_code}`}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-border rounded-lg bg-muted text-sm"
+                    />
+                    <Button onClick={copyInviteLink}>
+                      {copied ? 'Copied!' : 'Copy Link'}
+                    </Button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground">
+                  {room.is_public
+                    ? 'Anyone with this link can join this public room.'
+                    : 'This code is required to join this private room.'}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}

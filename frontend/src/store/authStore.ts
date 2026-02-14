@@ -4,15 +4,12 @@ interface User {
   id: string
   email: string
   display_name: string
-  avatar_url: string | null
-  clout_score: number
-  clout_rank: string
-  total_bets_placed: number
-  total_bets_won: number
-  streak_current: number
-  balance_virtual: number
-  balance_cash: number
-  wallet_address: string | null
+  is_npc: boolean
+  tokens: number
+  total_trades: number
+  successful_predictions: number
+  created_at: string
+  updated_at: string
 }
 
 interface AuthState {
@@ -33,8 +30,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: state.user
         ? {
             ...state.user,
-            balance_virtual: virtual ?? state.user.balance_virtual,
-            balance_cash: cash ?? state.user.balance_cash,
+            tokens: virtual ?? state.user.tokens,
           }
         : null,
     })),

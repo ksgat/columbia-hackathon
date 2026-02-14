@@ -6,6 +6,7 @@ export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
   },
 })
 
@@ -41,8 +42,9 @@ export const roomApi = {
   createRoom: (data: any) => api.post('/rooms', data),
   getRooms: () => api.get('/rooms'),
   getRoom: (id: string) => api.get(`/rooms/${id}`),
-  joinRoom: (id: string, joinCode: string, role: string = 'participant') =>
+  joinRoom: (id: string, joinCode: string = '', role: string = 'participant') =>
     api.post(`/rooms/${id}/join`, { join_code: joinCode, role }),
+  joinByCode: (joinCode: string) => api.post('/rooms/join-by-code', { join_code: joinCode }),
   leaveRoom: (id: string) => api.post(`/rooms/${id}/leave`),
   getLeaderboard: (id: string) => api.get(`/rooms/${id}/leaderboard`),
   getFeed: (id: string, cursor?: string) =>

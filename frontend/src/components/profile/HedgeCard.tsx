@@ -53,7 +53,7 @@ export function HedgeCard({
             🔮
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Prophet's Hedge Suggestion</h3>
+            <h3 className="text-lg font-bold text-white">Prophet&apos;s Hedge Suggestion</h3>
             <div className="flex items-center gap-2 mt-1">
               <div className="text-xs text-gray-400">Confidence:</div>
               <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden w-24">

@@ -14,6 +14,8 @@ export default function HomePage() {
   const { user, authenticated, isLoading } = useAuth()
   const { rooms, setRooms } = useRoomStore()
   const [loading, setLoading] = useState(true)
+  const [allRooms, setAllRooms] = useState<any[]>([])
+  const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoading && !authenticated) {
@@ -30,13 +32,35 @@ export default function HomePage() {
   const fetchRooms = async () => {
     try {
       const { data } = await roomApi.getRooms()
-      setRooms(data)
+      setAllRooms(data)
+      // Filter user's rooms (created by user)
+      const userRooms = data.filter((room: any) => room.creator_id === user?.id)
+      setRooms(userRooms)
     } catch (error) {
       console.error('Error fetching rooms:', error)
     } finally {
       setLoading(false)
     }
   }
+
+  const handleJoinRoom = async (roomId: string) => {
+    try {
+      setJoiningRoomId(roomId)
+      await roomApi.joinRoom(roomId, '', 'participant')
+      // Refresh rooms after joining
+      await fetchRooms()
+      // Navigate to the joined room
+      router.push(`/room/${roomId}`)
+    } catch (error: any) {
+      console.error('Error joining room:', error)
+      alert(error.response?.data?.detail || 'Failed to join room')
+    } finally {
+      setJoiningRoomId(null)
+    }
+  }
+
+  // Rooms user hasn't created
+  const discoverRooms = allRooms.filter((room: any) => room.creator_id !== user?.id)
 
   if (isLoading || loading) {
     return (
@@ -51,7 +75,8 @@ export default function HomePage() {
     )
   }
 
-  if (rooms.length === 0) {
+  // Don't show empty state if there are discoverable rooms
+  if (rooms.length === 0 && discoverRooms.length === 0) {
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 py-20">
@@ -113,9 +138,14 @@ export default function HomePage() {
               Welcome back, {user?.display_name}
             </p>
           </div>
-          <Button onClick={() => router.push('/rooms/create')}>
-            Create Room
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => router.push('/join')}>
+              Join via Code
+            </Button>
+            <Button onClick={() => router.push('/rooms/create')}>
+              Create Room
+            </Button>
+          </div>
         </div>
 
         {/* Stats Grid */}
@@ -170,45 +200,94 @@ export default function HomePage() {
         {/* Your Rooms */}
         <div className="mb-8">
           <h2 className="text-2xl font-bold mb-4">Your Rooms</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rooms.map((room) => (
-              <Card
-                key={room.id}
-                className="hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => router.push(`/room/${room.id}`)}
-              >
-                <CardHeader>
-                  <CardTitle>{room.name}</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {room.description || 'No description'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-4">
-                      <span className="text-muted-foreground">
-                        {room.member_count || 0} members
-                      </span>
-                      <span className="text-muted-foreground">
-                        {room.market_count || 0} markets
+          {rooms.length === 0 ? (
+            <Card className="p-6 text-center">
+              <p className="text-muted-foreground mb-4">You haven&apos;t created any rooms yet</p>
+              <Button onClick={() => router.push('/rooms/create')}>Create Your First Room</Button>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {rooms.map((room) => (
+                <Card
+                  key={room.id}
+                  className="hover:shadow-lg transition-shadow cursor-pointer"
+                  onClick={() => router.push(`/room/${room.id}`)}
+                >
+                  <CardHeader>
+                    <CardTitle>{room.name}</CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      {room.description || 'No description'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm mb-3">
+                      <div className="flex items-center gap-4">
+                        <span className="text-muted-foreground">
+                          {room.member_count || 0} members
+                        </span>
+                        <span className="text-muted-foreground">
+                          {room.market_count || 0} markets
+                        </span>
+                      </div>
+                      <span className="text-primary font-medium">View →</span>
+                    </div>
+                    <div className="pt-3 border-t space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700">
+                          Creator
+                        </span>
+                        <div className="text-xs font-mono text-muted-foreground">
+                          Code: {room.join_code}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Discover Public Rooms */}
+        {discoverRooms.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold mb-4">Discover Public Rooms</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {discoverRooms.map((room) => (
+                <Card key={room.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle>{room.name}</CardTitle>
+                    <CardDescription className="line-clamp-2">
+                      {room.description || 'No description'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center justify-between text-sm mb-4">
+                      <div className="flex items-center gap-4">
+                        <span className="text-muted-foreground">
+                          {room.member_count || 0} members
+                        </span>
+                        <span className="text-muted-foreground">
+                          {room.market_count || 0} markets
+                        </span>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700">
+                        Public
                       </span>
                     </div>
-                    <span className="text-primary font-medium">View →</span>
-                  </div>
-                  <div className="mt-3 pt-3 border-t">
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      room.currency_mode === 'cash'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {room.currency_mode === 'cash' ? 'Real Money' : 'Virtual'}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <Button
+                      className="w-full"
+                      onClick={() => handleJoinRoom(room.id)}
+                      disabled={joiningRoomId === room.id}
+                    >
+                      {joiningRoomId === room.id ? 'Joining...' : 'Join Room'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Quick Actions */}
         <Card>

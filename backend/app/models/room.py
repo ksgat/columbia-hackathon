@@ -27,6 +27,7 @@ class Room(Base):
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     slug = Column(String, unique=True, nullable=False, index=True)
+    join_code = Column(String, unique=True, nullable=False, index=True)
 
     # Creator
     creator_id = Column(String, ForeignKey("users.id"), nullable=False)
@@ -64,6 +65,7 @@ class Room(Base):
             "name": self.name,
             "description": self.description,
             "slug": self.slug,
+            "join_code": self.join_code,
             "creator_id": self.creator_id,
             "is_public": self.is_public,
             "status": self.status.value if self.status else None,

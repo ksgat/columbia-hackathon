@@ -3,7 +3,7 @@
 
 cd "$(dirname "$0")"
 
-echo "🚀 Starting Prophecy Backend..."
+echo "Starting Prophecy Backend..."
 echo ""
 echo "Dev Mode Enabled:"
 echo "  - Login: demo@prophecy.com (any password)"

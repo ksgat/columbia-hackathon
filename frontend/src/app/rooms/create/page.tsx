@@ -107,7 +107,7 @@ export default function CreateRoomPage() {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  This will be your room's URL: /room/{formData.slug || 'your-room-slug'}
+                  This will be your room&apos;s URL: /room/{formData.slug || 'your-room-slug'}
                 </p>
               </div>
 

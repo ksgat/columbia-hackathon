@@ -21,7 +21,7 @@ export function SpectatorBanner({ roomName, onUpgrade }: SpectatorBannerProps) {
           <div className="text-4xl">👀</div>
           <div>
             <h3 className="text-lg font-bold text-white mb-1">
-              You're viewing as a Spectator
+              You&apos;re viewing as a Spectator
             </h3>
             <p className="text-sm text-white/70">
               Upgrade to Participant to trade in markets, vote on resolutions, and earn clout in{' '}

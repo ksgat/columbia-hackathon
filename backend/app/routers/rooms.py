@@ -7,11 +7,19 @@ from sqlalchemy import select, func
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+import random
+import string
 
 from app.database import get_db
 from app.models.room import Room, RoomStatus
 from app.models.user import User
 from app.dependencies import get_current_user
+
+
+def generate_join_code(length=8):
+    """Generate a random join code"""
+    chars = string.ascii_uppercase + string.digits
+    return ''.join(random.choice(chars) for _ in range(length))
 
 
 router = APIRouter()
@@ -77,11 +85,21 @@ async def create_room(
             detail="Slug already in use"
         )
 
+    # Generate unique join code
+    while True:
+        join_code = generate_join_code()
+        result = await db.execute(
+            select(Room).where(Room.join_code == join_code)
+        )
+        if not result.scalar_one_or_none():
+            break
+
     # Create room
     room = Room(
         name=request.name,
         description=request.description,
         slug=request.slug,
+        join_code=join_code,
         creator_id=current_user.id,
         is_public=request.is_public,
         theme_color=request.theme_color,

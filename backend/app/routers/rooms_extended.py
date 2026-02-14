@@ -22,6 +22,45 @@ class JoinRoomRequest(BaseModel):
     role: str = "participant"
 
 
+class JoinByCodeRequest(BaseModel):
+    join_code: str
+
+
+@router.post("/join-by-code")
+async def join_room_by_code(
+    request: JoinByCodeRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Join a room using a join code."""
+    result = await db.execute(
+        select(Room).where(Room.join_code == request.join_code)
+    )
+    room = result.scalar_one_or_none()
+
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invalid join code"
+        )
+
+    # Check if room is full
+    if room.member_count >= room.max_members:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Room is full"
+        )
+
+    # TODO: Check if already a member
+    # TODO: Create membership record
+    # For now, just increment member count
+    room.member_count += 1
+    await db.commit()
+    await db.refresh(room)
+
+    return {"message": "Joined room successfully", "room": room.to_dict()}
+
+
 @router.post("/{room_id}/join")
 async def join_room(
     room_id: str,
@@ -39,6 +78,21 @@ async def join_room(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Room not found"
+        )
+
+    # Validate join code for private rooms
+    if not room.is_public:
+        if not request.join_code or request.join_code != room.join_code:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid join code for private room"
+            )
+
+    # Check if room is full
+    if room.member_count >= room.max_members:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Room is full"
         )
 
     # TODO: Check if already a member
