@@ -1,6 +1,0 @@
-additionally, on each prediction, there should be a historical chart of the value of the prediciotn (yes/no) over time. this hsould also apply ot 
-chained or derivative markets (options). 
-
-then, when a user places a bet, the value of the bet should be subtracted from their total balance. 
-
-finally, the leaderboard tab in market doesnt work. make this work as well. remove emojis.
