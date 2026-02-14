@@ -3,14 +3,20 @@ import { create } from 'zustand'
 interface Room {
   id: string
   name: string
-  description: string
+  description: string | null
+  slug: string
   join_code: string
-  currency_mode: 'virtual' | 'cash'
-  min_bet: number
-  max_bet: number
-  is_active: boolean
-  member_count?: number
-  spectator_count?: number
+  creator_id: string
+  is_public: boolean
+  status: string
+  max_members: number
+  theme_color: string | null
+  cover_image: string | null
+  member_count: number
+  market_count: number
+  total_volume: number
+  created_at: string
+  updated_at: string
 }
 
 interface RoomState {
