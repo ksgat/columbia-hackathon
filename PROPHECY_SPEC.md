@@ -1695,66 +1695,536 @@ SECRET_KEY=xxxxx                              # JWT signing
 
 ---
 
-## 15. Implementation Priority Order
+## 15. 7-Hour Hackathon Execution Plan (2-Person Team)
 
-For a hackathon, build in this order. Each phase builds on the previous and produces a demoable state.
+This section provides a realistic execution plan for building Prophecy with **all features** in **7 hours** with a **2-person team** (1 backend, 1 frontend) both using Claude Code extensively.
 
-### Phase 1: Foundation (Hours 1-4)
-1. Set up Supabase project, create all tables from Section 3
-2. Set up FastAPI project with auth router (Google OAuth via Supabase)
-3. Set up React project with Tailwind, routing, Supabase client
-4. Build: Landing page, Google login, basic Home page shell
-5. Implement: Create room, join room, room view with member list
+**Success Probability:**
+- With all features + shortcuts below: **~40%**
+- Cutting cash/USDC + simplifying AI: **~70%**
+- Also cutting derivatives + simplified chains: **~90%**
 
-### Phase 2: Core Trading (Hours 4-8)
-6. Implement LMSR engine (`services/lmsr.py`)
-7. Build: Create market API + UI
-8. Build: Place trade API + UI (TradePanel component)
-9. Build: MarketCard component with animated OddsBar
-10. Build: Market Detail page with OddsChart
-11. Wire up Supabase real-time for live odds updates
+---
 
-### Phase 3: Resolution (Hours 8-12)
-12. Implement market expiry checker (Celery task)
-13. Build: VotePanel component
-14. Implement voting logic (3/4 supermajority)
-15. Implement payout distribution
-16. Implement Clout Score (ELO) updates
-17. Build: Leaderboard page
+### Hour 0: Critical Alignment (15 minutes — BOTH DEVELOPERS)
 
-### Phase 4: Prophet AI (Hours 12-18)
-18. Build Market Gen Agent (Claude API call with web_search tool)
-19. Build Odds Agent (initial odds + Prophet's own bet)
-20. Build Resolution Agent (dispute handling)
-21. Build Commentary Agent (post-trade, post-resolution commentary)
-22. Wire up LangGraph orchestrator
-23. Build NarrativeCard component, integrate into feed
-24. Add Prophet to leaderboard with its own Clout Score
+**This is non-negotiable. Skipping this will cause 3+ hours of pain later.**
 
-### Phase 5: Advanced Features (Hours 18-24)
-25. Implement Chained Markets (parent_id, trigger, activation)
-26. Build ChainTree visualization component
-27. Implement Whisper Bets (submission, moderation, anonymous posting)
-28. Implement Manipulation Detection (anomaly rules + alerts)
-29. Implement Derivatives (creation, auto-resolution checker)
-30. Implement Spectator Mode (role-based UI gating)
+#### 1. Lock Down API Contract
 
-### Phase 6: Polish (Hours 24-30)
-31. Build Live Odds Ticker component with WebSocket
-32. Build Vibe Check Dashboard (gauges, charts, rivalry cards)
-33. Implement Hedge Mode suggestions
-34. Build achievement/badge system
-35. Add Framer Motion animations to all cards and transitions
-36. Build cash room UI (toggle, deposit/withdraw placeholders)
-37. Pre-seed demo data
-38. Polish landing page
+Create a shared document with all endpoint signatures:
 
-### Phase 7: Demo Prep (Hours 30-36)
-39. Record backup demo video
-40. Test all features end-to-end
-41. Prepare pitch script (Section 12.2)
-42. Deploy frontend to Vercel, backend to Railway
-43. Final database seed with compelling demo data
+```typescript
+// Example - define ALL of these upfront
+POST /api/auth/login
+  Request: { token: string }
+  Response: { user: User, session: string }
+
+POST /api/markets/:id/trade
+  Request: { side: 'yes'|'no', amount: number }
+  Response: { shares_received: number, new_odds_yes: number, new_balance: number }
+
+GET /api/rooms/:id/feed
+  Response: { items: (Market | NarrativeEvent)[], next_cursor: string }
+```
+
+#### 2. Confirm Database Schema
+
+Backend dev: Set up Supabase project with schema from Section 3 **immediately**. Share connection string with frontend dev.
+
+#### 3. Agree on Auth Flow
+
+Both use **Supabase Auth** with Google OAuth. Frontend gets session token, backend validates via Supabase.
+
+#### 4. Communication Protocol
+
+- **Shared doc**: Google Doc for API changes, gotchas
+- **Quick channel**: Discord/Slack for blockers
+- **Integration checkpoints**: Hour 3.5 and Hour 6 (meet for 10 min, test together)
+
+#### 5. Define Critical Interfaces
+
+```typescript
+interface Market {
+  id: string
+  room_id: string
+  title: string
+  odds_yes: number
+  odds_no: number
+  status: 'pending' | 'active' | 'voting' | 'disputed' | 'resolved'
+  total_pool: number
+  expires_at: string
+  created_at: string
+}
+
+interface User {
+  id: string
+  display_name: string
+  avatar_url: string
+  clout_score: number
+  clout_rank: string
+}
+
+interface Trade {
+  id: string
+  market_id: string
+  user_id: string
+  side: 'yes' | 'no'
+  amount: number
+  shares_received: number
+  odds_at_trade: number
+  created_at: string
+}
+```
+
+---
+
+### Backend Developer: 7-Hour Battle Plan
+
+#### Hour 1: Foundation (0:00 - 1:00)
+
+**Deliverables:**
+- ✅ Supabase project created, schema.sql executed
+- ✅ FastAPI project structure set up
+- ✅ Auth router working (`POST /api/auth/login`, `GET /api/auth/me`)
+- ✅ User and Room models (SQLAlchemy)
+- ✅ Room CRUD: `POST /api/rooms`, `GET /api/rooms`, `GET /api/rooms/:id`
+- ✅ Join room: `POST /api/rooms/:id/join` (creates membership)
+
+**Files created:**
+- `backend/app/main.py` (FastAPI app, CORS)
+- `backend/app/config.py` (environment vars)
+- `backend/app/database.py` (Supabase connection)
+- `backend/app/models/user.py`
+- `backend/app/models/room.py`
+- `backend/app/routers/auth.py`
+- `backend/app/routers/rooms.py`
+
+**Critical shortcuts:**
+- No input validation beyond type checking
+- Trust Supabase for auth, don't build custom JWT
+- Minimal error handling (let exceptions bubble)
+
+#### Hour 2: Trading Engine Core (1:00 - 2:00)
+
+**Deliverables:**
+- ✅ LMSR market maker class implemented and TESTED
+- ✅ Market model + CRUD endpoints
+- ✅ **`POST /api/markets/:id/trade`** — THE MOST CRITICAL ENDPOINT
+- ✅ Trade history: `GET /api/markets/:id/trades`
+- ✅ Market detail: `GET /api/markets/:id`
+
+**Files created:**
+- `backend/app/services/lmsr.py` (copy from Section 5.2, add tests)
+- `backend/app/models/market.py`
+- `backend/app/models/trade.py`
+- `backend/app/routers/markets.py`
+- `backend/app/routers/trades.py`
+
+**Testing:** Write a quick script to test LMSR math:
+```python
+# Test: buy YES, check odds move correctly
+mm = LMSRMarketMaker(b=100, yes_shares=0, no_shares=0)
+assert mm.current_price_yes() == 0.5
+shares = mm.execute_trade('yes', 50)
+assert mm.current_price_yes() > 0.5
+```
+
+**Critical shortcuts:**
+- No concurrent trade protection (row locking) — acceptable risk for demo
+- No minimum/maximum bet enforcement (add if time allows)
+
+#### Hour 3: Resolution + Clout (2:00 - 3:00)
+
+**Deliverables:**
+- ✅ Voting endpoints: `POST /api/markets/:id/vote`, `GET /api/markets/:id/votes`
+- ✅ Resolution logic: Check 3/4 supermajority, handle disputes
+- ✅ Payout distribution (update user balances)
+- ✅ ELO/Clout score calculation (Section 8)
+- ✅ Leaderboard: `GET /api/rooms/:id/leaderboard`
+
+**Files created:**
+- `backend/app/models/vote.py`
+- `backend/app/routers/votes.py`
+- `backend/app/services/resolution.py`
+- `backend/app/services/clout.py`
+
+**Critical shortcuts:**
+- Manual resolution trigger (admin calls `POST /api/markets/:id/resolve`)
+- Skip automated deadline checking (add in Hour 7 if time)
+
+**⏰ CHECKPOINT (3:30):** Meet with frontend dev. Test full trade flow:
+1. Frontend creates market
+2. Frontend places trade
+3. Check odds updated in DB
+4. Check balance deducted
+
+#### Hour 4: Prophet AI — Simplified (3:00 - 4:00)
+
+**Deliverables:**
+- ✅ Market Generation Agent (simple Claude API call, NO LangGraph)
+- ✅ Commentary Agent (post-trade and post-resolution)
+- ✅ Resolution Agent (for disputes)
+- ✅ Narrative events: `POST /api/narrative/generate`, `GET /api/rooms/:id/feed`
+- ✅ **Pre-write 20 fallback commentary snippets** (if Claude is slow)
+
+**Files created:**
+- `backend/app/agents/market_gen.py`
+- `backend/app/agents/commentary.py`
+- `backend/app/agents/resolution.py`
+- `backend/app/models/narrative.py`
+- `backend/app/routers/narrative.py`
+
+**Implementation approach:**
+```python
+# NO LangGraph — just simple function calls
+import anthropic
+
+def generate_market_commentary(market, trade):
+    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+    prompt = f"""You are Prophet, the snarky AI for a prediction market.
+User {trade.user.display_name} just bet {trade.side.upper()} on "{market.title}"
+for {trade.amount} coins. Generate 1-2 sentence witty commentary.
+Keep it playful, slightly roast-y, never mean."""
+
+    message = client.messages.create(
+        model="claude-3-5-sonnet-20241022",
+        max_tokens=150,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    return message.content[0].text
+```
+
+**Critical shortcuts:**
+- No LangGraph orchestration (saves 1-2 hours)
+- Call agents sequentially, not in parallel
+- Fallback to pre-written commentary if Claude API slow (>2 sec)
+- Skip Odds Agent (just set initial odds to 0.5 for all markets)
+
+#### Hour 5: Advanced Features Part 1 (4:00 - 5:00)
+
+**Deliverables:**
+- ✅ Chained markets: Handle `parent_market_id`, `trigger_condition`
+- ✅ Activation logic: When parent resolves, activate matching children
+- ✅ Derivative markets: Creation endpoint + threshold checking
+- ✅ Whisper bets: Submission, approval, anonymous creation
+
+**Files created:**
+- `backend/app/services/chains.py`
+- `backend/app/services/derivatives.py`
+- `backend/app/models/whisper.py`
+- `backend/app/routers/whispers.py`
+
+**Implementation approach:**
+```python
+# Chain activation (simple version)
+def activate_chained_markets(resolved_market):
+    children = Market.query.filter_by(
+        parent_market_id=resolved_market.id,
+        status='pending'
+    ).all()
+
+    for child in children:
+        if child.trigger_condition == f'parent_resolves_{resolved_market.resolution_result}':
+            child.status = 'active'
+            child.expires_at = datetime.now() + timedelta(hours=48)
+            db.commit()
+```
+
+**Critical shortcuts:**
+- Derivative checking runs on-demand, not via Celery (call it after each trade)
+- Whisper auto-approval (skip moderation queue for demo)
+- Max 1 level of chaining (skip 3-level depth)
+
+#### Hour 6: Advanced Features Part 2 (5:00 - 6:00)
+
+**Deliverables:**
+- ✅ Anomaly detection: 2-3 rules from Section 7.4 (large last-minute, coordinated bets, sudden reversal)
+- ✅ Hedge mode: `GET /api/users/:id/hedge-suggestions`
+- ✅ Achievement system: Badge checking after resolution
+- ✅ Feed endpoint: `GET /api/rooms/:id/feed` (merged markets + narratives)
+
+**Files created:**
+- `backend/app/services/anomaly.py`
+- `backend/app/services/hedge.py`
+- `backend/app/services/achievements.py`
+- `backend/app/models/anomaly.py`
+- `backend/app/models/achievement.py`
+
+**Critical shortcuts:**
+- Only 2-3 anomaly rules (not all 5)
+- Hedge mode uses simple heuristics (not Prophet analysis)
+- Only 5-6 badge types (not all 12)
+
+#### Hour 7: Real-time + Deployment (6:00 - 7:00)
+
+**Deliverables:**
+- ✅ WebSocket endpoint: `WS /ws/ticker/:room_id`
+- ✅ Supabase real-time subscription → WebSocket fan-out
+- ✅ Celery setup (OPTIONAL — can skip and use background threads)
+- ✅ 3 critical tasks: market expiry checker, voting deadline checker, Prophet periodic generation
+- ✅ **Pre-seed demo database** (2 rooms, 10 users, 15 markets, 50 trades, 10 narrative events)
+- ✅ Deploy to Railway
+
+**Files created:**
+- `backend/app/routers/websockets.py`
+- `backend/app/tasks/celery_app.py` (if using Celery)
+- `backend/app/tasks/periodic.py`
+- `backend/scripts/seed_demo_data.py`
+
+**Critical shortcuts:**
+- WebSocket optional (frontend can poll if this breaks)
+- Celery optional (use `threading.Timer` for background tasks)
+- Minimal deployment testing (deploy at 6:30, debug until 7:00)
+
+---
+
+### Frontend Developer: 7-Hour Battle Plan
+
+#### Hour 1: Foundation (0:00 - 1:00)
+
+**Deliverables:**
+- ✅ React + Vite + Tailwind setup
+- ✅ Supabase client configured
+- ✅ React Router v6 setup
+- ✅ Layout shell (navbar, sidebar)
+- ✅ Landing page (simple animated hero)
+- ✅ Google OAuth login flow
+
+**Files created:**
+- `frontend/src/App.jsx`
+- `frontend/src/main.jsx`
+- `frontend/src/lib/supabase.js`
+- `frontend/src/lib/api.js` (axios instance with auth headers)
+- `frontend/src/pages/Landing.jsx`
+- `frontend/src/components/shared/Layout.jsx`
+
+**Critical shortcuts:**
+- Use Tailwind UI or shadcn/ui components (don't design from scratch)
+- Desktop-only (skip mobile responsive)
+
+#### Hour 2: Core Components + Rooms (1:00 - 2:00)
+
+**Deliverables:**
+- ✅ `<MarketCard>` component with `<OddsBar>`
+- ✅ Room list page
+- ✅ Room detail page
+- ✅ Create room modal
+- ✅ Join room via code
+- ✅ Home feed shell (renders market cards)
+
+**Files created:**
+- `frontend/src/components/market/MarketCard.jsx`
+- `frontend/src/components/market/OddsBar.jsx`
+- `frontend/src/pages/HomeFeed.jsx`
+- `frontend/src/pages/RoomView.jsx`
+- `frontend/src/store/roomStore.js` (Zustand)
+
+**Critical shortcuts:**
+- Copy-paste card styles (DRY later)
+- Use basic Framer Motion (just `whileHover={{ scale: 1.02 }}`)
+
+#### Hour 3: Market Detail + Trading (2:00 - 3:00)
+
+**Deliverables:**
+- ✅ Market detail page full layout
+- ✅ `<OddsChart>` with Recharts (line chart)
+- ✅ `<TradePanel>` component with amount input, side buttons
+- ✅ Trade modal with confirmation
+- ✅ Real-time odds updates (Supabase subscription on `markets` table)
+- ✅ Leaderboard page
+
+**Files created:**
+- `frontend/src/pages/MarketDetail.jsx`
+- `frontend/src/components/market/OddsChart.jsx`
+- `frontend/src/components/market/TradePanel.jsx`
+- `frontend/src/pages/Leaderboard.jsx`
+- `frontend/src/hooks/useSupabaseRealtime.js`
+
+**Critical shortcuts:**
+- Simple line chart (no fancy tooltips or interactions)
+- Basic error handling (just alert on failure)
+
+**⏰ CHECKPOINT (3:30):** Test trade flow with backend. Click "Bet YES" → see odds update in real-time.
+
+#### Hour 4: Resolution + Profile (3:00 - 4:00)
+
+**Deliverables:**
+- ✅ `<VotePanel>` component (shown when market status = 'voting')
+- ✅ Vote tallies display (hide individual votes until deadline)
+- ✅ User profile page (positions, badges, stats)
+- ✅ `<NarrativeCard>` for Prophet commentary
+- ✅ Feed now shows both markets AND narrative cards
+
+**Files created:**
+- `frontend/src/components/market/VotePanel.jsx`
+- `frontend/src/components/feed/NarrativeCard.jsx`
+- `frontend/src/pages/Profile.jsx`
+- `frontend/src/components/profile/BadgeDisplay.jsx`
+
+**Critical shortcuts:**
+- Static badge icons (just emoji or simple SVG)
+- No vote countdown timer (just show deadline timestamp)
+
+#### Hour 5: Advanced Features Part 1 (4:00 - 5:00)
+
+**Deliverables:**
+- ✅ `<ChainTree>` visualization (parent → children flowchart)
+- ✅ Whisper form modal
+- ✅ Derivative market creation modal
+- ✅ Spectator mode UI (disable trade/vote buttons, show banner)
+
+**Files created:**
+- `frontend/src/components/market/ChainTree.jsx`
+- `frontend/src/components/room/WhisperForm.jsx`
+- `frontend/src/components/market/DerivativeForm.jsx`
+- `frontend/src/components/room/SpectatorBanner.jsx`
+
+**Critical shortcuts:**
+- Chain tree: Simple nested divs with CSS lines (not a fancy graph library)
+- Whisper form: Basic textarea + submit
+- Spectator mode: Just hide buttons based on user role
+
+#### Hour 6: Advanced Features Part 2 (5:00 - 6:00)
+
+**Deliverables:**
+- ✅ `<LiveTicker>` component (horizontal scrolling banner)
+- ✅ Vibe Check dashboard page (gauges, charts)
+- ✅ Hedge mode suggestions display on profile
+- ✅ `<AnomalyAlert>` cards in feed
+
+**Files created:**
+- `frontend/src/components/feed/LiveTicker.jsx`
+- `frontend/src/pages/VibeCheck.jsx`
+- `frontend/src/components/vibe/VibeGauge.jsx`
+- `frontend/src/components/vibe/TopicRadar.jsx`
+- `frontend/src/components/vibe/ActivityHeatmap.jsx`
+- `frontend/src/components/feed/AnomalyAlert.jsx`
+- `frontend/src/components/profile/HedgeCard.jsx`
+
+**Critical shortcuts:**
+- Vibe Check: Use Recharts prebuilt components (RadialBarChart, RadarChart)
+- Ticker: CSS animation only (no WebSocket, poll every 5 sec)
+- Activity heatmap: Simplified grid (not GitHub-style)
+
+#### Hour 7: Polish + Deployment (6:00 - 7:00)
+
+**Deliverables:**
+- ✅ Framer Motion animations on all cards, page transitions
+- ✅ Loading states (spinners on API calls)
+- ✅ Error boundaries for critical components
+- ✅ Connect WebSocket subscriptions (if backend has them)
+- ✅ **Record backup demo video** (at 6:30, before final integration)
+- ✅ Deploy to Vercel
+- ✅ End-to-end test all features
+
+**Critical shortcuts:**
+- Generic loading spinner (no skeletons)
+- Generic error messages ("Something went wrong")
+- WebSocket fallback: Just poll if WS breaks
+
+---
+
+### Critical Shortcuts (TAKE THESE TO HIT 7 HOURS)
+
+#### Backend Shortcuts:
+1. ❌ **Skip cash/USDC entirely** — Virtual coins only, mention crypto in pitch (saves 2-3 hours)
+2. ❌ **No LangGraph** — Simple sequential Claude API calls (saves 1-2 hours)
+3. ❌ **Minimal validation** — Trust frontend sends correct data (saves 30 min)
+4. ❌ **No error handling** — Let exceptions bubble, fix critical ones only (saves 45 min)
+5. ❌ **Celery optional** — Use background threads if Celery setup is painful (saves 1 hour)
+6. ❌ **No tests** — Manual test critical paths only (saves 1 hour)
+7. ❌ **Simple anomaly detection** — Only 2-3 rules, not all 5 (saves 30 min)
+8. ❌ **Hedge mode heuristics** — Don't use Prophet analysis, simple portfolio math (saves 30 min)
+
+#### Frontend Shortcuts:
+1. ❌ **Desktop only** — No mobile responsive (saves 1 hour)
+2. ❌ **Use component library** — shadcn/ui or Tailwind UI (saves 2 hours)
+3. ❌ **No skeletons** — Simple spinners for loading (saves 30 min)
+4. ❌ **Generic error states** — No custom error messages (saves 20 min)
+5. ❌ **Simple chain visualization** — Nested divs, not graph library (saves 45 min)
+6. ❌ **Vibe Check simplified** — Use Recharts default styling (saves 30 min)
+7. ❌ **No animations polish** — Just basic Framer Motion hover/tap (saves 30 min)
+
+#### Joint Shortcuts:
+1. ✅ **Pre-seed EVERYTHING** — Markets, trades, users, Prophet commentary, badges
+2. ✅ **Hardcode Prophet fallbacks** — 20 pre-written commentary snippets
+3. ✅ **Record backup video** at Hour 6:30 in case live demo breaks
+4. ✅ **Deploy early** — Backend at Hour 6, Frontend at Hour 6:30
+
+---
+
+### Highest Risk Items (Where Things Will Break)
+
+**🔴 Critical Risks:**
+1. **LMSR math bugs** — Test thoroughly in Hour 2, this is the core
+2. **WebSocket flakiness** — Have polling fallback ready
+3. **Prophet API slowness** — Pre-generate commentary, use fallbacks
+4. **Deployment issues** — Railway/Vercel can fail, start early
+5. **Real-time sync** — Supabase subscriptions need careful setup
+
+**🟡 Medium Risks:**
+1. Integration bugs between frontend/backend (hence checkpoints)
+2. Chain activation logic edge cases
+3. Resolution voting edge cases (no votes, ties)
+4. Derivative auto-resolution timing
+
+**🟢 Low Risks:**
+1. UI polish (can always show pre-recorded demo)
+2. Badge system (can hardcode a few)
+3. Spectator mode (just hide buttons)
+
+---
+
+### Integration Checkpoints
+
+**Checkpoint 1 (Hour 3:30)** — 10 minutes
+- Backend: Markets + trades working
+- Frontend: Can create market, place trade
+- Test: Full trade flow end-to-end
+- Fix: Any API contract mismatches
+
+**Checkpoint 2 (Hour 6:00)** — 15 minutes
+- Backend: All endpoints done, Prophet working
+- Frontend: All pages done, real-time working
+- Test: Full user journey (login → join room → trade → vote → resolve)
+- Fix: Critical bugs only
+- **Record backup demo video**
+
+---
+
+### Success Probability Summary
+
+| Scenario | Probability | What You Get |
+|----------|-------------|--------------|
+| **All features, all shortcuts** | ~40% | Complete Prophecy with minor bugs |
+| **Cut: cash/USDC, LangGraph, Celery** | ~70% | All features, simplified backend |
+| **Also cut: derivatives, 3-level chains** | ~90% | Highly polished core features |
+
+**Recommendation:** Aim for 70% scenario. If ahead of schedule at Hour 5, add back derivatives and deeper chains.
+
+---
+
+### Pre-Demo Checklist (Hour 6:45)
+
+- [ ] Backend deployed to Railway, health check passing
+- [ ] Frontend deployed to Vercel, loads without errors
+- [ ] Database seeded with compelling demo data
+- [ ] Prophet generating commentary (or fallbacks working)
+- [ ] Backup video recorded
+- [ ] All team members can log in and trade
+- [ ] Leaderboard showing Prophet with Clout score
+- [ ] At least one chain market visible
+- [ ] At least one narrative event in feed
+- [ ] Live ticker scrolling (or polling working)
+
+**If anything above fails, fall back to backup video and screenshots.**
+
+---
+
+**Ready to execute? Backend dev starts with database setup. Frontend dev starts with React project. LOCK DOWN API CONTRACT IN NEXT 15 MINUTES. GO! 🚀**
 
 ---
 
